@@ -1,17 +1,18 @@
 #!/bin/bash
 """
-File: 	workspace_manager.sh
 Author: Tom U. Schlegel
-Date: 	2025-02-11
+Date: 	2025-03-18
+File: 	workspace_manager.sh
+Info:   Manage workspaces on HPC Leipzig automatically.
 """
 
 # Configuration
 USERNAME=$(whoami)
-HOME_DIR="/home/sc.uni-leipzig.de/$USERNAME"   # Correct home directory path
+HOME_DIR="/home/sc.uni-leipzig.de/$USERNAME"
 LAST_RUN_FILE="$HOME_DIR/.workspace_manager_last_run"
-WARNING_DAYS=1  # Warn when less than this many days remaining
+WARNING_DAYS=3  # Warn when less than this many days remaining
 LOG_FILE="$HOME_DIR/.workspace_manager.log"
-EXTENSION_DAYS=30
+EXTENSION_DAYS=30  # Extend workspace by this many days
 
 # Function to log messages
 log_message() {
@@ -43,13 +44,18 @@ handle_extension() {
     local remaining_days="$2"
     local extensions="$3"
 
-    if [ "$remaining_days" -lt "$WARNING_DAYS" ] && [ "$extensions" -gt 0 ]; then
-        log_message "Extending workspace $workspace (had $remaining_days days left)"
-        ws_extend "$workspace" "$EXTENSION_DAYS"
-        if [ $? -eq 0 ]; then
-            log_message "Successfully extended workspace $workspace"
+    if [ "$remaining_days" -lt "$WARNING_DAYS" ]; then
+        if [ "$extensions" -gt 0 ]; then
+            log_message "Extending workspace $workspace (had $remaining_days days left)"
+            ws_extend "$workspace" "$EXTENSION_DAYS"
+            if [ $? -eq 0 ]; then
+                log_message "Successfully extended workspace $workspace"
+            else
+                log_message "Failed to extend workspace $workspace"
+            fi
         else
-            log_message "Failed to extend workspace $workspace"
+            log_message "WARNING: Workspace $workspace has only $remaining_days days left and no more extensions available!"
+            log_message "WARNING: Restore $workspace in new ws (same name) and move files to it's original location."
         fi
     fi
 }
