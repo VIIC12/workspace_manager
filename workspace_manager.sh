@@ -1,10 +1,9 @@
 #!/bin/bash
-"""
-Author: Tom U. Schlegel
-Date: 	2025-03-18
-File: 	workspace_manager.sh
-Info:   Manage workspaces on HPC Leipzig automatically.
-"""
+
+# Author:   Tom U. Schlegel
+# Date:     2025-03-18
+# File: 	workspace_manager.sh
+# Info:     Manage workspaces on HPC Leipzig automatically.
 
 # Configuration
 USERNAME=$(whoami)
