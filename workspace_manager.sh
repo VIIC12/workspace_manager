@@ -32,8 +32,8 @@ check_for_updates() {
         return 1
     fi
 
-    # Extract version from the downloaded script
-    latest_version=$(echo "$latest_script" | grep -m 1 "Version:" | awk '{print $2}')
+    # Extract version from GitHub raw URL
+    latest_version=$(echo "$latest_script" | grep -m 1 "Version:" | awk '{print $NF}')
     
     if [ "$latest_version" != "$CURRENT_VERSION" ]; then
         log_message "New version $latest_version available (current: $CURRENT_VERSION)"
