@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # Author:   Tom U. Schlegel
-# Date:     2025-03-18
+# Date:     2025-05-07
 # File: 	workspace_manager.sh
 # Info:     Manage workspaces on HPC Leipzig automatically.
+# Version:  1.0.2
 
 # Configuration
 USERNAME=$(whoami)
@@ -12,12 +13,39 @@ LAST_RUN_FILE="$HOME_DIR/.workspace_manager_last_run"
 WARNING_DAYS=3  # Warn when less than this many days remaining
 LOG_FILE="$HOME_DIR/.workspace_manager.log"
 EXTENSION_DAYS=30  # Extend workspace by this many days
+GITHUB_RAW_URL="https://raw.githubusercontent.com/VIIC12/workspace_manager/main/workspace_manager.sh"
+CURRENT_VERSION="1.0.2"
 
 # Function to log messages
-log_message() {
+log_message() { 
     color_start="\033[1;35m"
     color_end="\033[0m"
     echo -e "${color_start}[WORKSPACE MANAGER] [$(date '+%Y-%m-%d %H:%M:%S')] $1${color_end}" | tee -a "$LOG_FILE"
+}
+
+# Function to check for updates
+check_for_updates() {
+    # Download the latest version from GitHub
+    latest_script=$(curl -s "$GITHUB_RAW_URL")
+    if [ $? -ne 0 ]; then
+        log_message "Failed to check for updates"
+        return 1
+    fi
+
+    # Extract version from the downloaded script
+    latest_version=$(echo "$latest_script" | grep -m 1 "Version:" | awk '{print $2}')
+    
+    if [ "$latest_version" != "$CURRENT_VERSION" ]; then
+        log_message "New version $latest_version available (current: $CURRENT_VERSION)"
+        log_message "Updating script..."
+        
+        # Update script
+        echo "$latest_script" > "$0"
+        chmod +x "$0"
+        
+        log_message "Script updated successfully."
+        exit 0
+    fi
 }
 
 # Check if script has already run today
@@ -144,15 +172,17 @@ handle_restoration() {
     log_message "Starting restoration to workspace: $workspace"
     
     # Start restoration process and capture verification string
-    ws_restore "$username_workspace_number" "$workspace"
-      
-    if [ $? -eq 0 ]; then
-        log_message "Restoration successful for $username_workspace_number to $workspace"
-        # Reorganize the files
-        reorganize_workspace "$workspace" "$username_workspace_number"
-    else
-        log_message "Restoration failed for $username_workspace_number"
-    fi
+    log_message "Run the follwing command and enter the verfication string:"
+    log_message "ws_restore "$username_workspace_number" "$workspace""
+    
+    # TODO This does not work, because I don't know yet, how to parse the verification string
+    # if [ $? -eq 0 ]; then
+    #     log_message "Restoration successful for $username_workspace_number to $workspace"
+    #     # Reorganize the files
+    #     reorganize_workspace "$workspace" "$username_workspace_number"
+    # else
+    #     log_message "Restoration failed for $username_workspace_number"
+    # fi
 }
 
 # Process restorable workspaces
@@ -169,6 +199,8 @@ process_restorable() {
 }
 
 main() {
+    check_for_updates
+    
     if ! check_last_run; then
         log_message "Already run today"
         exit 0
