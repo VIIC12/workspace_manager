@@ -4,7 +4,7 @@
 # Date:     2025-05-07
 # File: 	workspace_manager.sh
 # Info:     Manage workspaces on HPC Leipzig automatically.
-# Version:  1.0.2
+# Version:  1.0.3
 
 # Configuration
 USERNAME=$(whoami)
@@ -14,7 +14,7 @@ WARNING_DAYS=3  # Warn when less than this many days remaining
 LOG_FILE="$HOME_DIR/.workspace_manager.log"
 EXTENSION_DAYS=30  # Extend workspace by this many days
 GITHUB_RAW_URL="https://raw.githubusercontent.com/VIIC12/workspace_manager/main/workspace_manager.sh"
-CURRENT_VERSION="1.0.2"
+CURRENT_VERSION="1.0.3"
 
 # Function to log messages
 log_message() { 
@@ -144,7 +144,7 @@ check_workspace() {
             return 2  # Exists but not empty
         fi
     else
-        log_message "Workspace $workspace does not exist"
+        log_message "Workspace $workspace does not exist yet"
         return 1  # Does not exist
     fi
 }
@@ -153,8 +153,8 @@ check_workspace() {
 handle_restoration() {
     local username_workspace_number="$1"
     local workspace=$(echo "$username_workspace_number" | sed "s/$USERNAME-\(.*\)-[0-9]\+/\1/")
-    
-    log_message "Attempting to restore $username_workspace_number as $workspace"
+
+    #log_message "Attempting to restore $username_workspace_number as $workspace"
     
     # Check if workspace already exists
     check_workspace "$workspace"
@@ -169,10 +169,11 @@ handle_restoration() {
             fi ;;
     esac
     
-    log_message "Starting restoration to workspace: $workspace"
+    #log_message "Starting restoration to workspace: $workspace"
     
     # Start restoration process and capture verification string
-    log_message "Run the follwing command and enter the verfication string:"
+    log_message "Automatically restoring workspace does not work because of the verification string."
+    log_message "Run the follwing command and enter the verfication string to restore the workspace:"
     log_message "ws_restore "$username_workspace_number" "$workspace""
     
     # TODO This does not work, because I don't know yet, how to parse the verification string
@@ -192,7 +193,7 @@ process_restorable() {
     if [ ! -z "$restorable" ]; then
         log_message "Found restorable workspaces:"
         echo "$restorable" | while read -r workspace; do
-            log_message "Processing restoration of: $workspace"
+            log_message "Processing restoration preparation of: $workspace"
             handle_restoration "$workspace"
         done
     fi
