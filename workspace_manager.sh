@@ -63,8 +63,7 @@ check_for_updates() {
         echo "$latest_script" > "$0"
         chmod +x "$0"
         
-        log_message 1 "Script updated successfully."
-        exit 0
+        log_message 2 "Script updated successfully."
     fi
 }
 
