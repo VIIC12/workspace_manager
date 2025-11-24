@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Author:   Tom U. Schlegel
-# Date:     2025-05-07
+# Date:     2025-11-24
 # File: 	workspace_manager.sh
 # Info:     Manage workspaces on HPC Leipzig automatically.
-# Version:  1.0.3
+# Version:  1.0.4
 
 # Configuration
 USERNAME=$(whoami)
@@ -14,13 +14,33 @@ WARNING_DAYS=3  # Warn when less than this many days remaining
 LOG_FILE="$HOME_DIR/.workspace_manager.log"
 EXTENSION_DAYS=30  # Extend workspace by this many days
 GITHUB_RAW_URL="https://raw.githubusercontent.com/VIIC12/workspace_manager/main/workspace_manager.sh"
-CURRENT_VERSION="1.0.3"
+CURRENT_VERSION="1.0.4"
 
-# Function to log messages
-log_message() { 
-    color_start="\033[1;35m"
+# Function to log messages with different log levels
+# Usage: log_message <level> "message"
+# Levels: 1 = normal, 2 = success, 3 = attention/warning
+log_message() {
+    local level="$1"
+    local message="$2"
+    
+    # Define colors for different log levels
+    case "$level" in
+        1)  # Normal log - Purple/Magenta (original color)
+            color_start="\033[1;35m"
+            ;;
+        2)  # Success - Green
+            color_start="\033[1;32m"
+            ;;
+        3)  # Attention/Warning - Yellow
+            color_start="\033[1;33m"
+            ;;
+        *)  # Default to normal if invalid level
+            color_start="\033[1;35m"
+            ;;
+    esac
+    
     color_end="\033[0m"
-    echo -e "${color_start}[WORKSPACE MANAGER] [$(date '+%Y-%m-%d %H:%M:%S')] $1${color_end}" | tee -a "$LOG_FILE"
+    echo -e "${color_start}[WORKSPACE MANAGER] [$(date '+%Y-%m-%d %H:%M:%S')] $message${color_end}" | tee -a "$LOG_FILE"
 }
 
 # Function to check for updates
@@ -28,7 +48,7 @@ check_for_updates() {
     # Download the latest version from GitHub
     latest_script=$(curl -s "$GITHUB_RAW_URL")
     if [ $? -ne 0 ]; then
-        log_message "Failed to check for updates"
+        log_message 1 "Failed to check for updates"
         return 1
     fi
 
@@ -36,14 +56,14 @@ check_for_updates() {
     latest_version=$(echo "$latest_script" | grep -m 1 "Version:" | awk '{print $NF}')
     
     if [ "$latest_version" != "$CURRENT_VERSION" ]; then
-        log_message "New version $latest_version available (current: $CURRENT_VERSION)"
-        log_message "Updating script..."
+        log_message 1 "New version $latest_version available (current: $CURRENT_VERSION)"
+        log_message 1 "Updating script..."
         
         # Update script
         echo "$latest_script" > "$0"
         chmod +x "$0"
         
-        log_message "Script updated successfully."
+        log_message 1 "Script updated successfully."
         exit 0
     fi
 }
@@ -73,16 +93,16 @@ handle_extension() {
 
     if [ "$remaining_days" -lt "$WARNING_DAYS" ]; then
         if [ "$extensions" -gt 0 ]; then
-            log_message "Extending workspace $workspace (had $remaining_days days left)"
+            log_message 1 "Extending workspace $workspace (had $remaining_days days left)"
             ws_extend "$workspace" "$EXTENSION_DAYS"
             if [ $? -eq 0 ]; then
-                log_message "Successfully extended workspace $workspace"
+                log_message 2 "Successfully extended workspace $workspace"
             else
-                log_message "Failed to extend workspace $workspace"
+                log_message 1 "Failed to extend workspace $workspace"
             fi
         else
-            log_message "WARNING: Workspace $workspace has only $remaining_days days left and no more extensions available!"
-            log_message "WARNING: Restore $workspace in new ws (same name) and move files to it's original location."
+            log_message 1 "WARNING: Workspace $workspace has only $remaining_days days left and no more extensions available!"
+            log_message 1 "WARNING: Restore $workspace in new ws (same name) and move files to it's original location."
         fi
     fi
 }
@@ -96,13 +116,13 @@ process_workspaces() {
     ws_list | while IFS= read -r line; do
         if [[ $line =~ ^id:\ (.*)$ ]]; then # if Line starts with "id: workspace" -> BASH_REMATCH[1] = workspace
             current_workspace="${BASH_REMATCH[1]}"
-            log_message "current_workspace: $current_workspace"
+            log_message 1 "Processing workspace: $current_workspace"
         elif [[ $line =~ remaining\ time.*:\ ([0-9]+)\ days ]]; then # if Line starts with "remaining time: 2 days" -> BASH_REMATCH[1] = 2
             remaining_days="${BASH_REMATCH[1]}"
-            log_message "remaining_days: $remaining_days"
+            log_message 1 "remaining_days: $remaining_days"
         elif [[ $line =~ available\ extensions.*:\ (.*)$ ]]; then # if Line starts with "available extensions: 1" -> BASH_REMATCH[1] = 1
             extensions="${BASH_REMATCH[1]}"
-            log_message "extensions: $extensions"
+            log_message 1 "extensions: $extensions"
             if [ ! -z "$current_workspace" ] && [ ! -z "$remaining_days" ]; then
                 handle_extension "$current_workspace" "$remaining_days" "$extensions"
             fi
@@ -117,13 +137,13 @@ reorganize_workspace() {
     local restored_path="$workspace_path/$username_workspace_number"
 
     if [ -d "$restored_path" ]; then
-        log_message "Moving contents from $restored_path to $workspace_path"
+        log_message 1 "Moving contents from $restored_path to $workspace_path"
         # Move all contents including hidden files
         mv "$restored_path"/* "$workspace_path" 2>/dev/null || true
         echo rmdir "$restored_path"
-        log_message "Cleanup of restored workspace structure complete"
+        log_message 1 "Cleanup of restored workspace structure complete"
     else
-        log_message "Error: Restored path $restored_path not found"
+        log_message 1 "Error: Restored path $restored_path not found"
     fi
 }
 
@@ -134,17 +154,17 @@ check_workspace() {
     
     # Check if workspace path exists
     if [ -d "$workspace_path" ]; then
-        log_message "Workspace $workspace exists"
+        log_message 1 "Workspace $workspace exists"
         # Check if workspace is empty
         if [ -z "$(ls -A $workspace_path)" ]; then
-            log_message "Workspace $workspace is empty" 
+            log_message 1 "Workspace $workspace is empty" 
             return 0  # Exists and is empty
         else
-            log_message "Workspace $workspace is not empty"
+            log_message 1 "Workspace $workspace is not empty"
             return 2  # Exists but not empty
         fi
     else
-        log_message "Workspace $workspace does not exist yet"
+        log_message 1 "Workspace $workspace does not exist yet"
         return 1  # Does not exist
     fi
 }
@@ -159,12 +179,12 @@ handle_restoration() {
     # Check if workspace already exists
     check_workspace "$workspace"
     case $? in
-        2)  log_message "Cannot restore: Workspace $workspace exists and is not empty"
+        2)  log_message 3 "Cannot restore: Workspace $workspace exists and is not empty"
             return 1 ;;
-        0)  log_message "Found empty workspace $workspace, will use it for restoration" ;;
-        *)  log_message "Creating new workspace $workspace"
+        0)  log_message 1 "Found empty workspace $workspace, will use it for restoration" ;;
+        *)  log_message 1 "Creating new workspace $workspace"
             if ! ws_allocate "$workspace" 30; then
-                log_message "Failed to create new workspace: $workspace"
+                log_message 1 "Failed to create new workspace: $workspace"
                 return 1
             fi ;;
     esac
@@ -172,9 +192,9 @@ handle_restoration() {
     #log_message "Starting restoration to workspace: $workspace"
     
     # Start restoration process and capture verification string
-    log_message "Automatically restoring workspace does not work because of the verification string."
-    log_message "Run the follwing command and enter the verfication string to restore the workspace:"
-    log_message "ws_restore "$username_workspace_number" "$workspace""
+    log_message 1 "Automatically restoring workspace does not work because of the verification string."
+    log_message 1 "Run the follwing command and enter the verfication string to restore the workspace:"
+    log_message 2 "ws_restore "$username_workspace_number" "$workspace""
     
     # TODO This does not work, because I don't know yet, how to parse the verification string
     # if [ $? -eq 0 ]; then
@@ -191,9 +211,9 @@ process_restorable() {
     local restorable=$(ws_restore -l | grep "^$USERNAME-" || true)
     
     if [ ! -z "$restorable" ]; then
-        log_message "Found restorable workspaces:"
+        log_message 3 "Found restorable workspaces:"
         echo "$restorable" | while read -r workspace; do
-            log_message "Processing restoration preparation of: $workspace"
+            log_message 2 "Processing restoration preparation of: $workspace"
             handle_restoration "$workspace"
         done
     fi
@@ -203,15 +223,15 @@ main() {
     check_for_updates
     
     if ! check_last_run; then
-        log_message "Already run today"
+        log_message 1 "Already run today"
         exit 0
     fi
 
-    log_message "Starting workspace management check"
+    log_message 1 "Starting workspace management check"
     process_workspaces
     process_restorable
     update_last_run
-    log_message "Finished workspace management check"
+    log_message 2 "Finished workspace management check"
 }
 
 main
