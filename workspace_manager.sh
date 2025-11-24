@@ -4,7 +4,7 @@
 # Date:     2025-11-24
 # File: 	workspace_manager.sh
 # Info:     Manage workspaces on HPC Leipzig automatically.
-# Version:  1.0.4
+# Version:  1.0.5
 
 # Configuration
 USERNAME=$(whoami)
@@ -14,7 +14,7 @@ WARNING_DAYS=3  # Warn when less than this many days remaining
 LOG_FILE="$HOME_DIR/.workspace_manager.log"
 EXTENSION_DAYS=30  # Extend workspace by this many days
 GITHUB_RAW_URL="https://raw.githubusercontent.com/VIIC12/workspace_manager/main/workspace_manager.sh"
-CURRENT_VERSION="1.0.4"
+CURRENT_VERSION="1.0.5"
 
 # Function to log messages with different log levels
 # Usage: log_message <level> "message"
